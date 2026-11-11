@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chamada de voz</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep: #0b0d14;
+      --bg-panel: #12141c;
+      --bg-card: #1a1d27;
+      --bg-hover: #232734;
+      --border: #262b38;
+      --text: #e8eaf0;
+      --text-dim: #8b93a7;
+      --accent: #5865f2;
+      --accent-hover: #4752c4;
+      --green: #23a55a;
+      --red: #ed4245;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 0%, rgba(88,101,242,.18), transparent 60%),
+        radial-gradient(ellipse 70% 50% at 85% 100%, rgba(155,89,182,.14), transparent 60%),
+        var(--bg-deep);
+      color: var(--text);
+      padding: 20px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 420px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.03) inset;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 22px;
+      background: linear-gradient(135deg, rgba(88,101,242,.22), rgba(155,89,182,.12));
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, #5865f2, #9b59b6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      box-shadow: 0 6px 18px rgba(88,101,242,.4);
+    }
+
+    .brand-text { min-width: 0; }
+    .brand-text h1 { font-size: 15px; font-weight: 700; }
+    .brand-text p { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+    .admin-badge {
+      display: none;
+      margin-left: auto;
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      color: #fbbf24;
+      background: rgba(251,191,36,.12);
+      border: 1px solid rgba(251,191,36,.35);
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .pane {
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+    #call { display: none; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    .field label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-dim);
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-deep);
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88,101,242,.18);
+    }
+
+    input::placeholder { color: #5a6175; }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      transition: background .15s, transform .1s, opacity .15s;
+    }
+
+    button:active { transform: scale(.98); }
+
+    .btn-primary {
+      width: 100%;
+      padding: 13px;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    .status {
+      font-size: 13px;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 8px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.02);
+      word-break: break-word;
+    }
+
+    .status.err { color: #ff8a8d; background: rgba(237,66,69,.1); }
+
+    .room-fixed {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(88,101,242,.14), rgba(155,89,182,.08));
+      border: 1px solid rgba(88,101,242,.3);
+    }
+
+    .room-fixed-icon { font-size: 17px; flex-shrink: 0; }
+
+    .room-fixed-text { min-width: 0; }
+
+    .room-fixed-text .label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--text-dim);
+    }
+
+    .room-fixed-text .value {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .divider { height: 1px; background: var(--border); margin: 2px 0; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-dim);
+      padding: 0 2px;
+    }
+
+    #peers {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+      min-width: 0;
+    }
+
+    .peer {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 11px;
+      border-radius: 10px;
+      background: var(--bg-card);
+      font-size: 14px;
+      transition: background .15s, box-shadow .15s;
+      border: 1px solid transparent;
+      min-width: 0;
+    }
+
+    .peer.speaking {
+      background: rgba(35,165,90,.12);
+      border-color: rgba(35,165,90,.45);
+      box-shadow: 0 0 0 1px rgba(35,165,90,.15), 0 4px 14px rgba(35,165,90,.12);
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+      position: relative;
+      letter-spacing: .02em;
+    }
+
+    .avatar .ring {
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      transition: border-color .15s;
+    }
+
+    .peer.speaking .avatar .ring { border-color: var(--green); }
+
+    .peer-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .badge {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: 3px 7px;
+      border-radius: 5px;
+      background: rgba(255,255,255,.05);
+    }
+
+    .peer-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+
+    .icon-btn {
+      width: 27px;
+      height: 27px;
+      border-radius: 7px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: background .15s, border-color .15s;
+    }
+
+    .icon-btn:hover { background: var(--bg-hover); }
+
+    .icon-btn.danger { color: #ff8a8d; }
+    .icon-btn.danger:hover {
+      background: rgba(237,66,69,.16);
+      border-color: rgba(237,66,69,.45);
+    }
+
+    .mute-icon { font-size: 12px; flex-shrink: 0; opacity: .8; }
+
+    .talk-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0 2px;
+    }
+
+    #talk {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.3;
+      padding: 0 14px;
+      color: #fff;
+      background: linear-gradient(145deg, #5865f2, #4752c4);
+      box-shadow: 0 10px 30px rgba(88,101,242,.35), 0 0 0 6px rgba(88,101,242,.08);
+      transition: background .2s, box-shadow .2s, transform .12s;
+    }
+
+    #talk:hover { box-shadow: 0 12px 36px rgba(88,101,242,.5), 0 0 0 8px rgba(88,101,242,.12); }
+
+    #talk.active {
+      background: linear-gradient(145deg, #ed4245, #c03537);
+      box-shadow: 0 10px 30px rgba(237,66,69,.45), 0 0 0 6px rgba(237,66,69,.12);
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 10px 30px rgba(237,66,69,.45), 0 0 0 6px rgba(237,66,69,.12); }
+      50% { box-shadow: 0 10px 30px rgba(237,66,69,.6), 0 0 0 14px rgba(237,66,69,.05); }
+    }
+
+    .hint { font-size: 11px; color: var(--text-dim); text-align: center; }
+
+    #log {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      max-height: 110px;
+      overflow-y: auto;
+      padding: 8px 10px;
+      border-radius: 9px;
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      font-size: 11.5px;
+      min-width: 0;
+    }
+
+    .log-row {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+      line-height: 1.4;
+    }
+
+    .log-time {
+      color: #5a6175;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+      font-size: 10.5px;
+    }
+
+    .log-text {
+      color: var(--text-dim);
+      word-break: break-word;
+      min-width: 0;
+    }
+
+    .log-join .log-text { color: #7dd3a0; }
+    .log-leave .log-text { color: #f0a0a2; }
+    .log-admin .log-text { color: #fbbf24; }
+    .log-mute .log-text { color: #a5b4fc; }
+    .log-kick .log-text { color: #ff8a8d; font-weight: 600; }
+
+    .log-empty {
+      color: #4a5162;
+      font-style: italic;
+      text-align: center;
+      padding: 4px 0;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      padding-top: 6px;
+      border-top: 1px solid var(--border);
+      margin-top: 2px;
+    }
+
+    .btn-ghost {
+      flex: 1;
+      min-width: 0;
+      padding: 11px 8px;
+      border-radius: 10px;
+      background: var(--bg-card);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .btn-ghost:hover { background: var(--bg-hover); }
+
+    .btn-danger { color: #ff8a8d; }
+    .btn-danger:hover { background: rgba(237,66,69,.14); border-color: rgba(237,66,69,.4); }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="brand">
+      <div class="brand-logo">🎙️</div>
+      <div class="brand-text">
+        <h1>Chamada de voz</h1>
+        <p>Áudio em tempo real · WebRTC</p>
+      </div>
+      <span id="adminBadge" class="admin-badge">ADM</span>
+    </div>
+
+    <div id="entry" class="pane">
+      <div class="room-fixed">
+        <span class="room-fixed-icon">🔒</span>
+        <div class="room-fixed-text">
+          <div class="label">Sala</div>
+          <div class="value" id="roomName">—</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="nameInput">Seu apelido</label>
+        <input id="nameInput" placeholder="ex: Rodrigo">
+      </div>
+      <div class="field">
+        <label for="passwordInput">Senha de admin (opcional)</label>
+        <input id="passwordInput" type="password" placeholder="deixe vazio para entrar como membro">
+      </div>
+      <button id="enterBtn" class="btn-primary">Entrar na sala</button>
+      <div id="status" class="status">Preencha e entre</div>
+    </div>
+
+    <div id="call" class="pane">
+      <div id="callStatus" class="status">Conectando...</div>
+
+      <div class="talk-zone">
+        <button id="talk">Clique para falar</button>
+        <div class="hint">ou aperte a barra de espaço</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-label">Participantes</div>
+      <div id="peers"></div>
+
+      <div class="section-label">Atividade</div>
+      <div id="log"><div class="log-empty">Nenhuma atividade ainda</div></div>
+
+      <div class="actions">
+        <button id="muteAllBtn" class="btn-ghost">Mutar todos</button>
+        <button id="leaveBtn" class="btn-ghost btn-danger">Sair</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
